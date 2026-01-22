@@ -1,0 +1,27 @@
+# System files
+.DS_Store
+.AppleDouble
+.LSOverride
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment (ignoring the specific folders inside pitch-ai/pitch which acts as venv)
+# Assuming pitch-ai/pitch is the venv root AND code root
+pitch-ai/pitch/bin/
+pitch-ai/pitch/include/
+pitch-ai/pitch/lib/
+pitch-ai/pitch/pyvenv.cfg
+pitch-ai/pitch/share/
+
+# Environment variables
+.env
+.env.local
+.env.*.local
+
+# General venv (in case created elsewhere)
+venv/
+env/
+.venv/

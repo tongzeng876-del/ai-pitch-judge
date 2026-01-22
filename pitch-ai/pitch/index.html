@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ward Infinity Judge | AI Evaluation</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/3.9.1/chart.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700;900&display=swap" rel="stylesheet">
+    <style>
+        body { background-color: #0b0f19; color: #e2e8f0; font-family: 'Inter', sans-serif; }
+        .glass-panel { background: rgba(30, 41, 59, 0.4); backdrop-filter: blur(12px); border: 1px solid rgba(255,255,255,0.08); }
+        .neon-text { text-shadow: 0 0 20px rgba(56, 189, 248, 0.4); }
+    </style>
+</head>
+<body class="min-h-screen py-8 px-6 flex flex-col items-center">
+
+    <header class="w-full max-w-6xl flex justify-between items-end mb-8 border-b border-slate-800 pb-4">
+        <div>
+            <h1 class="text-3xl font-black text-white neon-text uppercase tracking-tight">Ward Infinity AI Judge</h1>
+            <p class="text-slate-400 text-xs mt-1 font-mono">2026 Showcase Rubric (Scale 1-7)</p>
+        </div>
+        <div class="flex items-center gap-2 bg-slate-900/80 px-4 py-2 rounded-full border border-slate-700">
+            <span class="relative flex h-2 w-2">
+              <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-sky-400 opacity-75"></span>
+              <span class="relative inline-flex rounded-full h-2 w-2 bg-sky-500"></span>
+            </span>
+            <span id="systemStatus" class="text-sky-400 font-mono text-xs font-bold">SYSTEM READY</span>
+        </div>
+    </header>
+
+    <div class="w-full max-w-6xl mb-8 grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div id="step1" class="glass-panel p-5 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all hover:bg-slate-800/50">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Step 1</p>
+            <input type="file" id="pdfInput" accept="application/pdf" class="hidden">
+            <button onclick="document.getElementById('pdfInput').click()" class="bg-slate-800 hover:bg-slate-700 text-white text-xs px-5 py-2 rounded-lg font-bold border border-slate-600 transition-all">
+                UPLOAD DECK (PDF)
+            </button>
+            <p id="pdfName" class="text-[10px] text-slate-500 mt-2 truncate max-w-[120px]">No file selected</p>
+        </div>
+
+        <div id="step2" class="glass-panel p-5 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all opacity-40">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Step 2</p>
+            <button id="btnPitch" class="bg-indigo-600 hover:bg-indigo-500 text-white text-xs px-5 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-indigo-900/20" disabled>
+                <div class="w-2 h-2 bg-white rounded-full"></div> REC PITCH
+            </button>
+            <p id="timerPitch" class="text-[10px] text-slate-400 mt-2 font-mono">00:00</p>
+        </div>
+
+        <div id="step3" class="glass-panel p-5 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all opacity-40">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Step 3</p>
+            <button id="btnQA" class="bg-fuchsia-600 hover:bg-fuchsia-500 text-white text-xs px-5 py-2 rounded-lg font-bold flex items-center gap-2 shadow-lg shadow-fuchsia-900/20" disabled>
+                <div class="w-2 h-2 bg-white rounded-full"></div> REC Q&A
+            </button>
+            <p id="timerQA" class="text-[10px] text-slate-400 mt-2 font-mono">00:00</p>
+        </div>
+
+        <div id="step4" class="glass-panel p-5 rounded-xl border border-slate-700 flex flex-col items-center justify-center transition-all opacity-40">
+            <p class="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-2">Step 4</p>
+            <button id="btnSubmit" class="bg-sky-600 hover:bg-sky-500 text-white text-xs px-6 py-2 rounded-lg font-bold shadow-lg shadow-sky-900/20" disabled>
+                RUN ANALYSIS
+            </button>
+        </div>
+    </div>
+
+    <div id="captureArea" class="w-full max-w-6xl bg-[#0b0f19] p-4 rounded-3xl">
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-6">
+            
+            <div class="lg:col-span-7 glass-panel rounded-2xl p-6 flex flex-col">
+                <div class="flex justify-between items-start mb-2">
+                    <div>
+                        <h3 class="text-white text-sm font-bold uppercase tracking-widest">Rubric Performance</h3>
+                        <p class="text-slate-500 text-[10px] mt-1">Comparing Pitch vs. Q&A consistency</p>
+                    </div>
+                    <div class="flex gap-4 text-[10px] font-bold uppercase">
+                        <span class="text-indigo-400 flex items-center gap-1"><div class="w-2 h-2 bg-indigo-500 rounded-full"></div> Pitch</span>
+                        <span class="text-fuchsia-400 flex items-center gap-1"><div class="w-2 h-2 bg-fuchsia-500 rounded-full"></div> Q&A</span>
+                    </div>
+                </div>
+                <div class="flex-grow relative h-72 w-full flex items-center justify-center">
+                    <canvas id="radarChart"></canvas>
+                </div>
+            </div>
+
+            <div class="lg:col-span-5 flex flex-col gap-5">
+                <div class="grid grid-cols-2 gap-4">
+                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-indigo-500 relative overflow-hidden">
+                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Pitch Score</p>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <p id="score_pitch_avg" class="text-4xl font-black text-white">--</p>
+                            <span class="text-slate-600 text-sm font-bold">/ 7</span>
+                        </div>
+                    </div>
+                    <div class="glass-panel p-5 rounded-2xl border-l-4 border-fuchsia-500 relative overflow-hidden">
+                        <p class="text-slate-400 text-[10px] uppercase font-bold tracking-wider">Q&A Score</p>
+                        <div class="flex items-baseline gap-1 mt-1">
+                            <p id="score_qa_avg" class="text-4xl font-black text-white">--</p>
+                            <span class="text-slate-600 text-sm font-bold">/ 7</span>
+                        </div>
+                    </div>
+                </div>
+
+                <div id="auditSection" class="bg-slate-900/50 rounded-2xl p-5 border border-rose-900/30 flex-grow flex flex-col">
+                    <h3 class="text-rose-400 font-bold text-[10px] uppercase tracking-widest mb-3 flex items-center gap-2">
+                        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-3L13.732 4c-.77-1.333-2.694-1.333-3.464 0L3.34 16c-.77 1.333.192 3 1.732 3z"/></svg>
+                        Rubric Violations & Risks
+                    </h3>
+                    <ul id="auditList" class="space-y-3 text-sm overflow-y-auto max-h-40 pr-2">
+                        <li class="text-slate-600 italic text-xs">Waiting for inputs...</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="lg:col-span-12 glass-panel rounded-2xl p-6 grid grid-cols-1 md:grid-cols-2 gap-8 border-t border-slate-800">
+                <div>
+                    <h4 class="text-emerald-400 font-bold uppercase text-[10px] tracking-widest mb-3">Key Strengths</h4>
+                    <ul id="strengthsList" class="text-slate-300 text-sm space-y-2 list-disc list-inside marker:text-emerald-500/50"></ul>
+                </div>
+                <div>
+                    <h4 class="text-sky-400 font-bold uppercase text-[10px] tracking-widest mb-3">Recommendations</h4>
+                    <ul id="improvementsList" class="text-slate-300 text-sm space-y-2 list-disc list-inside marker:text-sky-500/50"></ul>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <div class="mt-8 mb-12">
+        <button id="exportBtn" class="text-slate-500 hover:text-white text-xs font-mono transition-colors flex items-center gap-2 cursor-pointer">
+            <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"/></svg>
+            DOWNLOAD JUDGE'S REPORT (PDF)
+        </button>
+    </div>
+
+    <script>
+        // GLOBAL STATE
+        let pdfFile = null;
+        let pitchBlob = null;
+        let qaBlob = null;
+        let radarChart;
+        
+        // --- UI HELPERS ---
+        const step1 = document.getElementById('step1');
+        const step2 = document.getElementById('step2');
+        const step3 = document.getElementById('step3');
+        const step4 = document.getElementById('step4');
+
+        function activateStep(currentDiv, nextDiv, nextBtnId) {
+            currentDiv.classList.add('border-sky-500', 'bg-slate-800/80'); 
+            currentDiv.querySelector('p:first-child').classList.replace('text-slate-400', 'text-sky-400');
+            nextDiv.classList.remove('opacity-40'); 
+            document.getElementById(nextBtnId).disabled = false;
+        }
+
+        // --- UPLOAD LOGIC ---
+        document.getElementById('pdfInput').addEventListener('change', (e) => {
+            if(e.target.files[0]) {
+                pdfFile = e.target.files[0];
+                document.getElementById('pdfName').innerText = pdfFile.name;
+                activateStep(step1, step2, 'btnPitch');
+            }
+        });
+
+        // --- RECORDER LOGIC ---
+        function setupRecorder(btnId, timerId, onStopCallback) {
+            let mediaRecorder;
+            let chunks = [];
+            let startTime;
+            let timerInterval;
+            const btn = document.getElementById(btnId);
+            const timer = document.getElementById(timerId);
+
+            btn.addEventListener('click', async () => {
+                if (btn.classList.contains('recording')) {
+                    // STOP
+                    mediaRecorder.stop();
+                    clearInterval(timerInterval);
+                    btn.classList.remove('recording', 'bg-rose-600', 'hover:bg-rose-500', 'animate-pulse');
+                    btn.classList.add(btnId === 'btnPitch' ? 'bg-indigo-600' : 'bg-fuchsia-600');
+                    btn.innerText = "CAPTURED ✅";
+                    btn.disabled = true; 
+                } else {
+                    // START
+                    try {
+                        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                        mediaRecorder = new MediaRecorder(stream);
+                        chunks = [];
+                        mediaRecorder.ondataavailable = e => chunks.push(e.data);
+                        mediaRecorder.onstop = () => {
+                            const blob = new Blob(chunks, { type: 'audio/wav' });
+                            onStopCallback(blob);
+                        };
+                        mediaRecorder.start();
+                        
+                        startTime = Date.now();
+                        timerInterval = setInterval(() => {
+                            const diff = Math.floor((Date.now() - startTime) / 1000);
+                            const m = Math.floor(diff / 60).toString().padStart(2, '0');
+                            const s = (diff % 60).toString().padStart(2, '0');
+                            timer.innerText = `${m}:${s}`;
+                        }, 1000);
+                        
+                        btn.classList.add('recording', 'bg-rose-600', 'hover:bg-rose-500', 'animate-pulse');
+                        btn.classList.remove('bg-indigo-600', 'bg-fuchsia-600');
+                        btn.innerText = "STOP RECORDING";
+                    } catch (err) { alert("Microphone access denied."); }
+                }
+            });
+        }
+
+        setupRecorder('btnPitch', 'timerPitch', (blob) => { pitchBlob = blob; activateStep(step2, step3, 'btnQA'); });
+        setupRecorder('btnQA', 'timerQA', (blob) => { qaBlob = blob; activateStep(step3, step4, 'btnSubmit'); });
+
+        // --- SUBMIT LOGIC ---
+        document.getElementById('btnSubmit').addEventListener('click', async () => {
+            const btn = document.getElementById('btnSubmit');
+            btn.innerText = "JUDGING IN PROGRESS...";
+            btn.disabled = true;
+            document.getElementById('systemStatus').innerText = "AI ANALYZING...";
+            document.getElementById('systemStatus').classList.add('animate-pulse');
+
+            const formData = new FormData();
+            formData.append('pdf_file', pdfFile);
+            formData.append('pitch_audio', pitchBlob, 'pitch.wav');
+            formData.append('qa_audio', qaBlob, 'qa.wav');
+
+            try {
+                const res = await fetch('http://127.0.0.1:8000/analyze_full_session', { method: 'POST', body: formData });
+                if(!res.ok) throw new Error("Server Error");
+                const data = await res.json();
+                renderResults(data);
+                
+                document.getElementById('systemStatus').innerText = "COMPLETE";
+                document.getElementById('systemStatus').classList.remove('animate-pulse');
+                btn.innerText = "ANALYSIS DONE";
+            } catch (err) {
+                alert("Error: " + err.message);
+                btn.innerText = "RETRY";
+                btn.disabled = false;
+            }
+        });
+
+        // --- EXPORT PDF LOGIC (FIXED: Keeps Risks, Fixes Black Gap) ---
+        document.getElementById('exportBtn').addEventListener('click', () => {
+            const el = document.getElementById('captureArea');
+            const btn = document.getElementById('exportBtn');
+            
+            // 1. Button feedback
+            const originalText = btn.innerText;
+            btn.innerText = "GENERATING PDF...";
+            btn.disabled = true;
+
+            const opt = {
+                margin:       0.1,
+                filename:     'Ward_Infinity_Report.pdf',
+                image:        { type: 'jpeg', quality: 0.98 },
+                html2canvas:  { 
+                    scale: 2, 
+                    backgroundColor: '#0b0f19',
+                    scrollY: 0,   // <--- FIXED: Prevents top black bar
+                    useCORS: true
+                },
+                jsPDF:        { unit: 'in', format: 'letter', orientation: 'landscape' }
+            };
+
+            html2pdf().set(opt).from(el).save().then(() => {
+                // 2. Restore Button
+                btn.innerText = originalText;
+                btn.disabled = false;
+            });
+        });
+
+        // --- CHART & RENDER ---
+        window.addEventListener('load', () => {
+            const ctx = document.getElementById('radarChart').getContext('2d');
+            
+            const backgroundCircles = {
+                id: 'backgroundCircles',
+                beforeDatasetsDraw(chart, args, options) {
+                    const {ctx, chartArea: {top, bottom, left, right, width, height}, scales: {r}} = chart;
+                    ctx.save();
+                    ctx.strokeStyle = 'rgba(255, 255, 255, 0.05)';
+                    ctx.lineWidth = 1;
+                    r.grid.forEach(grid => {
+                        ctx.beginPath();
+                        ctx.arc(r.xCenter, r.yCenter, grid.distance, 0, Math.PI * 2);
+                        ctx.stroke();
+                    });
+                    ctx.restore();
+                }
+            };
+
+            radarChart = new Chart(ctx, {
+                type: 'radar',
+                data: {
+                    labels: ['Problem & Evidence', 'User & Market', 'Solution', 'Biz Model', 'Traction', 'Impact & Future'],
+                    datasets: [
+                        {
+                            label: 'Pitch',
+                            data: [0,0,0,0,0,0],
+                            borderColor: '#6366f1',
+                            backgroundColor: 'rgba(99, 102, 241, 0.2)',
+                            pointBackgroundColor: '#fff',
+                            borderWidth: 2
+                        },
+                        {
+                            label: 'Q&A',
+                            data: [0,0,0,0,0,0],
+                            borderColor: '#d946ef',
+                            backgroundColor: 'rgba(217, 70, 239, 0.2)',
+                            pointBackgroundColor: '#fff',
+                            borderWidth: 2
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    scales: {
+                        r: {
+                            angleLines: { color: 'rgba(255, 255, 255, 0.1)' },
+                            grid: { display: false },
+                            pointLabels: { 
+                                color: '#94a3b8', 
+                                font: {size: 10, weight: '700', family: 'Inter'},
+                                callback: function(label) { return label.split(' '); }
+                            },
+                            suggestedMin: 0, 
+                            suggestedMax: 7, 
+                            ticks: { display: false, stepSize: 1 }
+                        }
+                    },
+                    plugins: { legend: { display: false } }
+                },
+                plugins: [backgroundCircles]
+            });
+        });
+
+        function renderResults(data) {
+            const mapScores = (s) => [s.problem, s.market, s.solution, s.biz_model, s.traction, s.impact];
+            
+            radarChart.data.datasets[0].data = mapScores(data.pitch_scores);
+            radarChart.data.datasets[1].data = mapScores(data.qa_scores);
+            radarChart.update();
+
+            const calcAvg = (scores) => (Object.values(scores).reduce((a,b)=>a+b,0) / 6).toFixed(1);
+            document.getElementById('score_pitch_avg').innerText = calcAvg(data.pitch_scores);
+            document.getElementById('score_qa_avg').innerText = calcAvg(data.qa_scores);
+
+            const list = document.getElementById('auditList');
+            list.innerHTML = data.audit_flags.map(f => `
+                <li class="bg-rose-500/10 p-3 rounded-lg border-l-2 border-rose-500 mb-2">
+                    <strong class="text-rose-300 text-xs block mb-1">${f.title}</strong>
+                    <p class="text-slate-400 text-[10px] leading-relaxed">${f.description}</p>
+                </li>`).join('');
+
+            const renderList = (id, items) => {
+                document.getElementById(id).innerHTML = items.map(s => `<li class="pl-1">${s}</li>`).join('');
+            };
+            renderList('strengthsList', data.feedback.strengths);
+            renderList('improvementsList', data.feedback.improvements);
+        }
+    </script>
+</body>
+</html>
