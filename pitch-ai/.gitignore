@@ -1,0 +1,26 @@
+# Secrets
+.env
+pitch/.env
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+
+# Virtual environment
+pitch/bin/
+pitch/lib/
+pitch/include/
+pitch/pyvenv.cfg
+
+# Temp files
+temp_*.wav
+
+# CSV results (generated at runtime)
+*.csv
+
+# Test files
+What is VERA.*
+
+# OS files
+.DS_Store
